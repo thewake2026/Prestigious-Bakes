@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prestigious Bakes admin</title><meta name="robots" content="noindex">
+<title>Prestigious Admin</title><link rel="manifest" href="admin.webmanifest"><meta name="theme-color" content="#5a1e6e"><link rel="apple-touch-icon" href="images/icon-192.png"><meta name="robots" content="noindex">
 <style>
 :root{--pink:#e4258f;--plum:#5a1e6e;--blush:#ffeaf4}
 *{box-sizing:border-box;margin:0}body{font-family:system-ui,sans-serif;background:#fff8fb;color:#2b0f36;padding-bottom:40px}
@@ -24,7 +24,7 @@ const C=window.PB,$=s=>document.querySelector(s),app=$('#app');
 const sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_KEY);
 const say=t=>{const m=$('#msg');m.textContent=t;m.style.display='block';setTimeout(()=>m.style.display='none',2200)};
 const ST=['Received','Baking','Ready','Delivered'],money=n=>n?'₦'+Number(n).toLocaleString():'no price';
-let role=null,tab='orders',me=null;if(location.hash=='#leads')tab='leads';
+let role=null,tab='orders',me=null,dp=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e});if(location.hash=='#leads')tab='leads';
 const wph=p=>{p=String(p).replace(/\D/g,'');return p.startsWith('234')?p:'234'+p.replace(/^0/,'')};
 const b64=s=>Uint8Array.from(atob((s+'='.repeat((4-s.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
@@ -40,8 +40,8 @@ async function start(){
 function loginView(err=''){app.innerHTML=`<h1>Prestigious Bakes admin</h1><div class="card" style="margin-top:14px"><label>Email</label><input id="em" type="email"><label>Password</label><input id="pw" type="password"><button class="b p" id="go">Log in</button><p style="color:#b3123f">${err}</p></div>`;
  $('#go').onclick=async()=>{const r=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});r.error?loginView('Login failed: '+r.error.message):start()}}
 function shell(){const tabs=[['orders','Orders'],['menu','Menu'],['site','Site'],['photos','Photos'],['pay','Payment'],['leads','Leads'],['notify','Notify'],...(role=='dev'?[['dev','Developer']]:[])];
- app.innerHTML=`<div class="top"><h1>Prestigious Bakes</h1><span class="tag">${role=='dev'?'Developer':'Owner'}</span><button class="b" id="pn">🔔 Alerts</button><button class="b" id="out">Log out</button></div><nav>${tabs.map(t=>`<button data-t="${t[0]}" class="${tab==t[0]?'on':''}">${t[1]}</button>`).join('')}</nav><div id="body"></div>`;
- $('#pn').onclick=adminPush;$('#out').onclick=async()=>{await sb.auth.signOut();start()};
+ app.innerHTML=`<div class="top"><h1>Prestigious Bakes</h1><span class="tag">${role=='dev'?'Developer':'Owner'}</span>${dp||/iphone|ipad/i.test(navigator.userAgent)?'<button class="b" id="inst">Install</button>':''}<button class="b" id="pn">🔔 Alerts</button><button class="b" id="out">Log out</button></div><nav>${tabs.map(t=>`<button data-t="${t[0]}" class="${tab==t[0]?'on':''}">${t[1]}</button>`).join('')}</nav><div id="body"></div>`;
+ $('#pn').onclick=adminPush;const ib=$('#inst');if(ib)ib.onclick=()=>{if(dp){dp.prompt();dp=null;ib.remove()}else say('Tap Share, then Add to Home Screen')};$('#out').onclick=async()=>{await sb.auth.signOut();start()};
  document.querySelector('nav').onclick=e=>{if(e.target.dataset.t){tab=e.target.dataset.t;shell()}};
  ({orders,menu,site,photos,pay,leads,notify,dev})[tab]()}
 
