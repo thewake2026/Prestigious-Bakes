@@ -34,7 +34,8 @@ async function start(){
  if(!data.session)return loginView();
  me=data.session.user.email;
  const r=await sb.from('admins').select('role').eq('email',me).maybeSingle();
- if(!r.data)return loginView('This account is not an admin.');
+ if(r.error)return loginView('Could not read the admin list: '+r.error.message);
+ if(!r.data){await sb.auth.signOut();return loginView('The login '+me+' is not in the admins list. Check it matches exactly.')}
  role=r.data.role;shell()}
 function loginView(err=''){app.innerHTML=`<h1>Prestigious Bakes admin</h1><div class="card" style="margin-top:14px"><label>Email</label><input id="em" type="email"><label>Password</label><input id="pw" type="password"><button class="b p" id="go">Log in</button><p style="color:#b3123f">${err}</p></div>`;
  $('#go').onclick=async()=>{const r=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});r.error?loginView('Login failed: '+r.error.message):start()}}
