@@ -37,7 +37,7 @@ async function start(){
  if(!r.data)return loginView('This account is not an admin.');
  role=r.data.role;shell()}
 function loginView(err=''){app.innerHTML=`<h1>Prestigious Bakes admin</h1><div class="card" style="margin-top:14px"><label>Email</label><input id="em" type="email"><label>Password</label><input id="pw" type="password"><button class="b p" id="go">Log in</button><p style="color:#b3123f">${err}</p></div>`;
- $('#go').onclick=async()=>{const r=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});r.error?loginView('Wrong email or password.'):start()}}
+ $('#go').onclick=async()=>{const r=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});r.error?loginView('Login failed: '+r.error.message):start()}}
 function shell(){const tabs=[['orders','Orders'],['menu','Menu'],['pay','Payment'],['leads','Leads'],['notify','Notify'],...(role=='dev'?[['dev','Developer']]:[])];
  app.innerHTML=`<div class="top"><h1>Prestigious Bakes</h1><span class="tag">${role=='dev'?'Developer':'Owner'}</span><button class="b" id="pn">🔔 Alerts</button><button class="b" id="out">Log out</button></div><nav>${tabs.map(t=>`<button data-t="${t[0]}" class="${tab==t[0]?'on':''}">${t[1]}</button>`).join('')}</nav><div id="body"></div>`;
  $('#pn').onclick=adminPush;$('#out').onclick=async()=>{await sb.auth.signOut();start()};
