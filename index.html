@@ -81,32 +81,32 @@ footer{background:var(--band);color:#e9c9f2;padding:30px 0;text-align:center}foo
 <header><div class="wrap"><a href="#top"><img src="images/logo.png" alt="Prestigious Bakes"></a>
 <nav><a href="#menu">Menu</a><a href="#track">Track order</a><button class="cartbtn" id="inst" hidden style="background:var(--band)">Install app</button><button class="cartbtn" id="cartbtn">Order (0)</button></nav></div></header>
 
-<main id="top"><div class="wrap hero">
-<div><h1 class="in">Baked fresh in Eksu, Ado-Ekiti.</h1>
-<p class="in">Birthday and surprise cakes, small chops, chinchin, peanut and more. Pick what you want, and we confirm on WhatsApp.</p>
+<main id="top"><div id="notice" hidden style="background:var(--gold);color:#2b0f36;text-align:center;padding:9px 16px;font-weight:700"></div><div class="wrap hero" id="s-hero">
+<div><h1 class="in" id="hl">Baked fresh in Eksu, Ado-Ekiti.</h1>
+<p class="in" id="sb">Birthday and surprise cakes, small chops, chinchin, peanut and more. Pick what you want, and we confirm on WhatsApp.</p>
 <div class="in"><a class="btn" href="#menu">See the menu</a> <a class="btn ghost" href="#track">Track my order</a></div></div>
-<div class="stage"><div class="disc" id="disc"></div><span class="badge">Fresh to order</span><div class="dots" id="dots"></div></div></div>
+<div class="stage"><div class="disc" id="disc"></div><span class="badge" id="bd">Fresh to order</span><div class="dots" id="dots"></div></div></div>
 
 <section id="menu"><div class="wrap"><h2>What we bake</h2><p class="sub">Tap + to add to your order.</p>
 <div class="tabs" id="tabs"></div><div class="grid" id="grid"></div>
-<p class="soon">Wedding cakes and big cakes are coming soon. For now we do birthday and surprise cakes.</p></div></section>
+<p class="soon" id="soon">Wedding cakes and big cakes are coming soon. For now we do birthday and surprise cakes.</p></div></section>
 
-<section class="band"><div class="wrap"><h2>From our kitchen</h2><p class="sub">Trays, tubs and the odd cake in progress.</p>
-<div class="rail"><video src="images/bakery.mp4" muted loop playsinline controls preload="metadata"></video>
+<section class="band" id="kitchen"><div class="wrap"><h2 id="kt">From our kitchen</h2><p class="sub" id="ks">Trays, tubs and the odd cake in progress.</p>
+<div class="rail" id="rail"><video src="images/bakery.mp4" muted loop playsinline controls preload="metadata"></video>
 <img src="images/bts-heart-cakes.jpg" alt="Heart-shaped cakes fresh from the oven" loading="lazy">
 <img src="images/baker-pouches.jpg" alt="The baker holding packs of peanut" loading="lazy">
 <img src="images/baker-sign.jpg" alt="The baker with her whisk taker sign" loading="lazy">
 <img src="images/chinchin-tubs.jpg" alt="Stacked tubs of chinchin" loading="lazy"></div></div></section>
 
-<section><div class="wrap meet"><img src="images/baker-pouches.jpg" alt="The baker with her products" loading="lazy">
-<div><h2>Made to order, close to you</h2><p>Everything is baked when you order it, in Eksu, Ado-Ekiti. Tell us the flavour, the date and what to write on the cake, and we handle the rest.</p><p style="margin-top:12px">Vanilla, red velvet and chocolate cakes. Meat pie, egg rolls, doughnuts and small chops. Peanut and chinchin by the tub.</p></div></div></section>
+<section id="about"><div class="wrap meet"><img src="images/baker-pouches.jpg" alt="The baker with her products" loading="lazy">
+<div><h2 id="at">Made to order, close to you</h2><p id="a1">Everything is baked when you order it, in Eksu, Ado-Ekiti. Tell us the flavour, the date and what to write on the cake, and we handle the rest.</p><p style="margin-top:12px" id="a2">Vanilla, red velvet and chocolate cakes. Meat pie, egg rolls, doughnuts and small chops. Peanut and chinchin by the tub.</p></div></div></section>
 
 <section id="track"><div class="wrap"><h2>Where is my order?</h2><p class="sub">Enter the name and phone number you used when you ordered.</p>
 <form class="panel" id="trackform"><label>Your name</label><input id="tname" required>
 <label>Phone number</label><input id="tphone" required inputmode="tel" placeholder="07046243952"><button class="btn">Check status</button>
 <div id="tres"></div></form></div></section></main>
 
-<footer><div class="wrap"><p>Prestigious Bakes, Eksu, Ado-Ekiti</p><p><a href="#" id="wa">Chat on WhatsApp: 07046243952</a></p></div></footer>
+<footer><div class="wrap"><p id="ft">Prestigious Bakes, Eksu, Ado-Ekiti</p><p><a href="#" id="wa">Chat on WhatsApp: 07046243952</a></p></div></footer>
 
 <div class="drawer" id="drawer"><div class="sheet" id="sheet"></div></div><div class="toast" id="toast"></div>
 
@@ -125,15 +125,16 @@ const wa=t=>`https://wa.me/${C.WHATSAPP}?text=${encodeURIComponent(t)}`;
 $('#wa').href=wa('Hello Prestigious Bakes, I would like to order.');
 
 // hero carousel
-const hero=['cake-birthday-topper','cake-pink-ombre','puff-puff-packs','chinchin-tubs','cake-green','cake-pink-rosette'];let h=0;
-hero.forEach((f,i)=>{$('#disc').insertAdjacentHTML('beforeend',`<img src="${I+f}.jpg" alt="" class="${i?'':'on'}">`);$('#dots').insertAdjacentHTML('beforeend',`<i class="${i?'':'on'}"></i>`)});
-setInterval(()=>{const a=document.querySelectorAll('#disc img'),d=document.querySelectorAll('#dots i');a[h].classList.remove('on');d[h].classList.remove('on');h=(h+1)%a.length;a[h].classList.add('on');d[h].classList.add('on')},3800);
+let h=0;
+function buildHero(list){h=0;$('#disc').innerHTML='';$('#dots').innerHTML='';list.forEach((u,i)=>{$('#disc').insertAdjacentHTML('beforeend',`<img src="${u}" alt="" class="${i?'':'on'}">`);$('#dots').insertAdjacentHTML('beforeend',`<i class="${i?'':'on'}"></i>`)})}
+buildHero(['cake-birthday-topper','cake-pink-ombre','puff-puff-packs','chinchin-tubs','cake-green','cake-pink-rosette'].map(f=>I+f+'.jpg'));
+setInterval(()=>{const a=document.querySelectorAll('#disc img'),d=document.querySelectorAll('#dots i');if(a.length<2)return;a[h].classList.remove('on');d[h].classList.remove('on');h=(h+1)%a.length;a[h].classList.add('on');d[h].classList.add('on')},3800);
 
 async function load(){
  if(sb){try{const r=await sb.from('items').select('*').eq('available',true).order('sort').order('id');if(r.data&&r.data.length)items=r.data;
   const s=await sb.from('settings').select('*');(s.data||[]).forEach(x=>cfg[x.key]=x.value)}catch(e){}}
- menu()}
-function menu(){const cats=['All',...new Set(items.map(i=>i.category))];
+ await loadContent();menu()}
+function menu(){const have=[...new Set(items.map(i=>i.category))],ord=(CT.categories||[]).filter(c=>have.includes(c)),cats=['All',...ord,...have.filter(c=>!ord.includes(c))];
  $('#tabs').innerHTML=cats.map(c=>`<button class="${c==cat?'on':''}" data-c="${c}">${c}</button>`).join('');
  $('#grid').innerHTML=items.filter(i=>cat=='All'||i.category==cat).map(i=>`<article class="tile"><img src="${i.image_url}" alt="${i.name}" loading="lazy"><span class="pr">${i.price?money(i.price):'Ask for price'}</span><div class="bd"><h3>${i.name}</h3><button data-add="${i.id}" aria-label="Add ${i.name}">+</button></div></article>`).join('')}
 $('#tabs').onclick=e=>{if(e.target.dataset.c){cat=e.target.dataset.c;menu()}};
@@ -187,6 +188,22 @@ function welcome(){if(me.phone||!sb||$('#drawer').classList.contains('open')||Da
  $('#wf').onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));remember(f.name,f.phone);lead();$('#drawer').classList.remove('open');if(f.pn)await subscribe(f.name,f.phone);else toast('Thanks!')}}
 setTimeout(welcome,25000);
 if(sb){let v=localStorage.pb_vid;if(!v){v=Math.random().toString(36).slice(2);localStorage.pb_vid=v}sb.rpc('log_visit',{p_vid:v})}
+let CT={};
+async function loadContent(){if(sb){try{const r=await sb.from('site_content').select('*');(r.data||[]).forEach(x=>CT[x.key]=x.value)}catch(e){}}applyContent()}
+const safe=u=>/^(https:\/\/|#|images\/|data:image\/)/.test(u||'')?u:'';
+function applyContent(){const t=CT.texts||{},set=(id,k)=>{if(k in t)$(id).textContent=t[k]};
+ set('#hl','headline');set('#sb','sub');set('#bd','badge');set('#soon','soon');set('#kt','kitchen_title');set('#ks','kitchen_sub');set('#at','about_title');set('#a1','about_p1');set('#a2','about_p2');set('#ft','footer');
+ if(t.notice){$('#notice').textContent=t.notice;$('#notice').hidden=false}
+ if(CT.hero&&CT.hero.length)buildHero(CT.hero.map(safe).filter(Boolean));
+ if(CT.gallery){const v=$('#rail video'),r=$('#rail');r.innerHTML='';if(v)r.appendChild(v);CT.gallery.map(safe).filter(Boolean).forEach(u=>{const i=new Image();i.src=u;i.alt='';i.loading='lazy';r.appendChild(i)})}
+ const S={hero:'#s-hero',menu:'#menu',kitchen:'#kitchen',about:'#about',track:'#track'},hid=(CT.sections&&CT.sections.hidden)||[];
+ for(const [k,sel] of Object.entries(S))$(sel).hidden=hid.includes(k);
+ const last={};(CT.blocks||[]).forEach(b=>{const slot=S[b.slot==='top'?'hero':b.slot]?b.slot==='top'?'hero':b.slot:'menu',sec=document.createElement('section'),w=document.createElement('div');w.className='wrap';sec.appendChild(w);
+  if(safe(b.image)){const i=new Image();i.src=b.image;i.alt='';i.style.cssText='border-radius:22px;max-height:360px;width:100%;object-fit:cover;margin-bottom:14px';w.appendChild(i)}
+  if(b.title){const e=document.createElement('h2');e.textContent=b.title;w.appendChild(e)}
+  if(b.text){const p=document.createElement('p');p.textContent=b.text;p.style.cssText='max-width:40em;white-space:pre-line';w.appendChild(p)}
+  if(b.btn&&safe(b.url)){const a=document.createElement('a');a.className='btn';a.textContent=b.btn;a.href=b.url;a.style.marginTop='14px';w.appendChild(a)}
+  (last[slot]||$(S[slot])).insertAdjacentElement('afterend',sec);last[slot]=sec})}
 //PWA-START
 let dp;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;$('#inst').hidden=false});
 if(/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone)$('#inst').hidden=false;

@@ -39,11 +39,11 @@ async function start(){
  role=r.data.role;shell()}
 function loginView(err=''){app.innerHTML=`<h1>Prestigious Bakes admin</h1><div class="card" style="margin-top:14px"><label>Email</label><input id="em" type="email"><label>Password</label><input id="pw" type="password"><button class="b p" id="go">Log in</button><p style="color:#b3123f">${err}</p></div>`;
  $('#go').onclick=async()=>{const r=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});r.error?loginView('Login failed: '+r.error.message):start()}}
-function shell(){const tabs=[['orders','Orders'],['menu','Menu'],['pay','Payment'],['leads','Leads'],['notify','Notify'],...(role=='dev'?[['dev','Developer']]:[])];
+function shell(){const tabs=[['orders','Orders'],['menu','Menu'],['site','Site'],['photos','Photos'],['pay','Payment'],['leads','Leads'],['notify','Notify'],...(role=='dev'?[['dev','Developer']]:[])];
  app.innerHTML=`<div class="top"><h1>Prestigious Bakes</h1><span class="tag">${role=='dev'?'Developer':'Owner'}</span><button class="b" id="pn">🔔 Alerts</button><button class="b" id="out">Log out</button></div><nav>${tabs.map(t=>`<button data-t="${t[0]}" class="${tab==t[0]?'on':''}">${t[1]}</button>`).join('')}</nav><div id="body"></div>`;
  $('#pn').onclick=adminPush;$('#out').onclick=async()=>{await sb.auth.signOut();start()};
  document.querySelector('nav').onclick=e=>{if(e.target.dataset.t){tab=e.target.dataset.t;shell()}};
- ({orders,menu,pay,leads,notify,dev})[tab]()}
+ ({orders,menu,site,photos,pay,leads,notify,dev})[tab]()}
 
 async function orders(){const b=$('#body');b.innerHTML='<p>Loading…</p>';
  const {data}=await sb.from('orders').select('*').order('created_at',{ascending:false}).limit(60);
@@ -56,17 +56,61 @@ async function orders(){const b=$('#body');b.innerHTML='<p>Loading…</p>';
  b.onchange=async e=>{const d=e.target.dataset;if(d.s)await sb.from('orders').update({status:e.target.value}).eq('id',d.s);if(d.pd)await sb.from('orders').update({paid:e.target.checked}).eq('id',d.pd);say('Saved')}}
 window.orders=orders;
 
-async function menu(){const b=$('#body');const {data}=await sb.from('items').select('*').order('sort').order('id');
- b.innerHTML=`<div class="card"><h2>Add item</h2><label>Photo</label><input type="file" id="ph" accept="image/*"><label>Name</label><input id="nm"><label>Category</label>
- <select id="ct"><option>Cakes</option><option>Small chops</option><option>Snacks</option><option>Gift boxes</option></select><label>Price in naira (optional)</label><input id="pr" type="number" inputmode="numeric"><button class="b p" id="add">Add to site</button></div>
- <h2>On the site</h2>${(data||[]).map(i=>`<div class="card item"><img src="${i.image_url}"><div style="flex:1"><b>${i.name}</b><br><small>${i.category}</small></div>
- <input type="number" placeholder="Price" value="${i.price||''}" data-pr="${i.id}"><label><input type="checkbox" data-av="${i.id}" ${i.available?'checked':''} style="width:auto;margin:0"> Show</label><button class="b" data-del="${i.id}">Delete</button></div>`).join('')||'<p>No items yet. The site shows its starter menu until you add one here.</p>'}`;
- $('#add').onclick=async()=>{const f=$('#ph').files[0],n=$('#nm').value.trim();if(!f||!n)return say('Add a photo and a name');
-  const blob=await shrink(f),path=Date.now()+'.jpg',u=await sb.storage.from('photos').upload(path,blob,{contentType:'image/jpeg'});
-  if(u.error)return say('Upload failed');const url=sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const CAT_DEF=['Cakes','Small chops','Snacks','Gift boxes'];
+const HERO_DEF=['cake-birthday-topper','cake-pink-ombre','puff-puff-packs','chinchin-tubs','cake-green','cake-pink-rosette'].map(f=>'images/'+f+'.jpg');
+const GAL_DEF=['bts-heart-cakes','baker-pouches','baker-sign','chinchin-tubs'].map(f=>'images/'+f+'.jpg');
+async function getC(k,d){const r=await sb.from('site_content').select('value').eq('key',k).maybeSingle();return r.data?r.data.value:d}
+async function setC(k,v){const r=await sb.from('site_content').upsert({key:k,value:v});say(r.error?'Could not save: '+r.error.message:'Saved');return !r.error}
+async function upload(f){const blob=await shrink(f),path=Date.now()+Math.random().toString(36).slice(2,6)+'.jpg',u=await sb.storage.from('photos').upload(path,blob,{contentType:'image/jpeg'});if(u.error){say('Upload failed');return null}return sb.storage.from('photos').getPublicUrl(path).data.publicUrl}
+
+async function menu(){const b=$('#body'),cats=await getC('categories',CAT_DEF),{data}=await sb.from('items').select('*').order('sort').order('id'),items=data||[];
+ const opts=sel=>cats.map(c=>`<option ${c==sel?'selected':''}>${esc(c)}</option>`).join('');
+ b.innerHTML=`<div class="card"><h2>Categories</h2>${cats.map((c,i)=>`<div class="row" style="margin-bottom:6px"><input data-cr="${i}" value="${esc(c)}" style="flex:1;margin:0"><button class="b" data-cu="${i}">↑</button><button class="b" data-cd="${i}">↓</button><button class="b" data-cx="${i}">✕</button></div>`).join('')}<div class="row"><input id="nc" placeholder="New category" style="flex:1;margin:0"><button class="b p" id="ac">Add</button></div></div>
+ <div class="card"><h2>Add item</h2><label>Photo</label><input type="file" id="ph" accept="image/*"><label>Name</label><input id="nm"><label>Category</label><select id="ct">${opts('')}</select><label>Price in naira (optional)</label><input id="pr" type="number" inputmode="numeric"><button class="b p" id="add">Add to site</button></div>
+ <h2>On the site</h2>${items.map(i=>`<div class="card"><div class="item"><img src="${esc(i.image_url)}"><div style="flex:1;min-width:0"><input data-nm="${i.id}" value="${esc(i.name)}" style="max-width:none;width:100%;margin-bottom:6px"><select data-ct="${i.id}" style="margin:0">${opts(i.category)}</select></div></div><div class="row" style="margin-top:10px"><input type="number" placeholder="Price" value="${i.price||''}" data-pr="${i.id}" style="width:110px;margin:0"><label><input type="checkbox" data-av="${i.id}" ${i.available?'checked':''} style="width:auto;margin:0"> Show</label><label class="b">Change photo<input type="file" accept="image/*" data-ph="${i.id}" hidden></label><button class="b" data-del="${i.id}">Delete</button></div></div>`).join('')||'<p>No items yet. The site shows its starter menu until you add one here.</p>'}`;
+ $('#ac').onclick=async()=>{const n=$('#nc').value.trim();if(!n||cats.includes(n))return;cats.push(n);await setC('categories',cats);menu()};
+ $('#add').onclick=async()=>{const f=$('#ph').files[0],n=$('#nm').value.trim();if(!f||!n)return say('Add a photo and a name');const url=await upload(f);if(!url)return;
   await sb.from('items').insert({name:n,category:$('#ct').value,price:$('#pr').value||null,image_url:url});say('Added');menu()};
- b.onchange=async e=>{const d=e.target.dataset;if(d.pr!==undefined&&d.pr)await sb.from('items').update({price:e.target.value||null}).eq('id',d.pr);if(d.av)await sb.from('items').update({available:e.target.checked}).eq('id',d.av);say('Saved')};
- b.onclick=async e=>{const id=e.target.dataset.del;if(id&&confirm('Delete this item?')){await sb.from('items').delete().eq('id',id);menu()}}}
+ b.onchange=async e=>{const d=e.target.dataset,v=e.target.value;
+  if(d.cr!==undefined){const i=+d.cr,old=cats[i],nw=v.trim();if(nw&&nw!=old&&!cats.includes(nw)){cats[i]=nw;await sb.from('items').update({category:nw}).eq('category',old);await setC('categories',cats);menu()}return}
+  if(d.nm)await sb.from('items').update({name:v}).eq('id',d.nm);
+  if(d.ct)await sb.from('items').update({category:v}).eq('id',d.ct);
+  if(d.pr)await sb.from('items').update({price:v||null}).eq('id',d.pr);
+  if(d.av)await sb.from('items').update({available:e.target.checked}).eq('id',d.av);
+  if(d.ph){const u=await upload(e.target.files[0]);if(u){await sb.from('items').update({image_url:u}).eq('id',d.ph);menu();return}}
+  say('Saved')};
+ b.onclick=async e=>{const d=e.target.dataset;
+  if(d.del&&confirm('Delete this item?')){await sb.from('items').delete().eq('id',d.del);menu()}
+  if(d.cu!==undefined||d.cd!==undefined){const i=+(d.cu??d.cd),j=d.cu!==undefined?i-1:i+1;if(j<0||j>=cats.length)return;[cats[i],cats[j]]=[cats[j],cats[i]];await setC('categories',cats);menu()}
+  if(d.cx!==undefined){const c=cats[+d.cx];if(items.some(x=>x.category==c))return say('Move or delete its items first');cats.splice(+d.cx,1);await setC('categories',cats);menu()}}}
+
+const TX={headline:['Headline','Baked fresh in Eksu, Ado-Ekiti.'],sub:['Text under the headline','Birthday and surprise cakes, small chops, chinchin, peanut and more. Pick what you want, and we confirm on WhatsApp.'],badge:['Badge on the cake circle','Fresh to order'],notice:['Notice banner at the top (empty = none)',''],soon:['Note under the menu (empty = hide)','Wedding cakes and big cakes are coming soon. For now we do birthday and surprise cakes.'],kitchen_title:['Gallery title','From our kitchen'],kitchen_sub:['Gallery text','Trays, tubs and the odd cake in progress.'],about_title:['About title','Made to order, close to you'],about_p1:['About paragraph 1','Everything is baked when you order it, in Eksu, Ado-Ekiti. Tell us the flavour, the date and what to write on the cake, and we handle the rest.'],about_p2:['About paragraph 2','Vanilla, red velvet and chocolate cakes. Meat pie, egg rolls, doughnuts and small chops. Peanut and chinchin by the tub.'],footer:['Footer line','Prestigious Bakes, Eksu, Ado-Ekiti']};
+async function site(){const t=await getC('texts',{});
+ $('#body').innerHTML=`<div class="card"><h2>Website text</h2>${Object.entries(TX).map(([k,[l,d]])=>`<label>${l}</label><textarea data-tx="${k}" rows="2">${esc(k in t?t[k]:d)}</textarea>`).join('')}<button class="b p" id="st">Save text</button></div>`;
+ $('#st').onclick=async()=>{const o={};document.querySelectorAll('[data-tx]').forEach(x=>o[x.dataset.tx]=x.value);await setC('texts',o)}}
+
+async function photos(){const b=$('#body');b.innerHTML='';for(const [k,def,t] of [['hero',HERO_DEF,'Home carousel photos'],['gallery',GAL_DEF,'From our kitchen gallery']]){const d=document.createElement('div');d.className='card';b.appendChild(d);await plist(d,k,def,t)}}
+async function plist(d,k,def,t){const list=await getC(k,def);
+ d.innerHTML=`<h2>${t}</h2>${list.map((u,i)=>`<div class="item" style="margin-bottom:8px"><img src="${esc(u)}"><span style="flex:1"></span><button class="b" data-a="up" data-i="${i}">↑</button><button class="b" data-a="dn" data-i="${i}">↓</button><button class="b" data-a="rm" data-i="${i}">Remove</button></div>`).join('')}<label>Add a photo</label><input type="file" accept="image/*">`;
+ d.onclick=async e=>{const a=e.target.dataset.a;if(!a)return;const i=+e.target.dataset.i;if(a=='rm')list.splice(i,1);else{const j=a=='up'?i-1:i+1;if(j<0||j>=list.length)return;[list[i],list[j]]=[list[j],list[i]]}await setC(k,list);plist(d,k,def,t)};
+ d.querySelector('input[type=file]').onchange=async e=>{const u=await upload(e.target.files[0]);if(u){list.push(u);await setC(k,list);plist(d,k,def,t)}}}
+
+const SECS={hero:'Home banner and carousel',menu:'Menu',kitchen:'From our kitchen gallery',about:'About (made to order)',track:'Track my order'};
+const SLOTS={top:'Under the home banner',menu:'After the menu',kitchen:'After the gallery',about:'After the about section',track:'After tracking'};
+async function layout(){const sec=await getC('sections',{hidden:[]}),blocks=await getC('blocks',[]),d=document.createElement('div');$('#body').appendChild(d);
+ d.innerHTML=`<div class="card"><h2>Sections on the site</h2>${Object.entries(SECS).map(([k,l])=>`<label style="display:block;margin:6px 0"><input type="checkbox" data-sec="${k}" ${(sec.hidden||[]).includes(k)?'':'checked'} style="width:auto;margin:0 8px 0 0">${l}</label>`).join('')}<small>Untick to hide a section.</small></div>
+ <div class="card"><h2>Custom blocks</h2>${blocks.map((b,i)=>`<div class="card" style="box-shadow:inset 0 0 0 1.5px #e8c3d9"><label>Position</label><select data-bf="slot" data-i="${i}">${Object.entries(SLOTS).map(([k,l])=>`<option value="${k}" ${b.slot==k?'selected':''}>${l}</option>`).join('')}</select><label>Heading</label><input data-bf="title" data-i="${i}" value="${esc(b.title)}"><label>Text</label><textarea data-bf="text" data-i="${i}" rows="3">${esc(b.text)}</textarea><label>Image</label>${b.image?`<img src="${esc(b.image)}" style="width:80px;border-radius:10px;display:block;margin:4px 0">`:''}<input type="file" accept="image/*" data-bimg="${i}"><label>Button text</label><input data-bf="btn" data-i="${i}" value="${esc(b.btn)}"><label>Button link (https://…)</label><input data-bf="url" data-i="${i}" value="${esc(b.url)}"><div class="row"><button class="b" data-bu="${i}">↑</button><button class="b" data-bd="${i}">↓</button><button class="b" data-bx="${i}">Remove</button></div></div>`).join('')}<div class="row"><button class="b" id="ab">Add block</button><button class="b p" id="sbk">Save blocks</button></div></div>`;
+ d.onchange=async e=>{const x=e.target.dataset;
+  if(x.sec){const h=new Set(sec.hidden||[]);e.target.checked?h.delete(x.sec):h.add(x.sec);sec.hidden=[...h];await setC('sections',sec)}
+  if(x.bf)blocks[+x.i][x.bf]=e.target.value;
+  if(x.bimg!==undefined){const u=await upload(e.target.files[0]);if(u){blocks[+x.bimg].image=u;await setC('blocks',blocks);dev()}}};
+ d.onclick=async e=>{const x=e.target.dataset,id=e.target.id;
+  if(id=='ab'){blocks.push({slot:'menu',title:'',text:'',image:'',btn:'',url:''});await setC('blocks',blocks);dev()}
+  if(id=='sbk')await setC('blocks',blocks);
+  if(x.bx!==undefined){blocks.splice(+x.bx,1);await setC('blocks',blocks);dev()}
+  if(x.bu!==undefined||x.bd!==undefined){const i=+(x.bu??x.bd),j=x.bu!==undefined?i-1:i+1;if(j<0||j>=blocks.length)return;[blocks[i],blocks[j]]=[blocks[j],blocks[i]];await setC('blocks',blocks);dev()}}}
+
 function shrink(f){return new Promise(r=>{const im=new Image();im.onload=()=>{const s=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(r,'image/jpeg',.8)};im.src=URL.createObjectURL(f)})}
 
 async function pay(){const {data}=await sb.from('settings').select('*'),s={};(data||[]).forEach(x=>s[x.key]=x.value);
@@ -77,7 +121,7 @@ async function dev(){const {data}=await sb.from('admins').select('*');
  $('#body').innerHTML=`<div class="card"><h2>Who can log in</h2>${(data||[]).map(a=>`<p>${a.email} <span class="tag">${a.role}</span></p>`).join('')}
  <label>Add admin email (create their login in Supabase first)</label><input id="ae" type="email"><select id="ar"><option value="owner">Owner</option><option value="dev">Developer</option></select><button class="b p" id="aa">Add</button></div>
  <div class="card"><h2>Notes</h2><small>Site keys and the WhatsApp number live in config.js. Menu, prices, photos and bank details are all edited in the other tabs.</small></div>`;
- $('#aa').onclick=async()=>{const r=await sb.from('admins').insert({email:$('#ae').value.trim().toLowerCase(),role:$('#ar').value});say(r.error?'Could not add':'Added');dev()}}
+ $('#aa').onclick=async()=>{const r=await sb.from('admins').insert({email:$('#ae').value.trim().toLowerCase(),role:$('#ar').value});say(r.error?'Could not add':'Added');dev()};layout()}
 async function leads(){const {data}=await sb.from('leads').select('*').order('updated_at',{ascending:false}).limit(60);
  $('#body').innerHTML=(data||[]).map(l=>`<div class="card"><b>${l.name}</b> <span class="tag">${l.converted?'ordered':(l.cart||[]).length?'left items':'signed up'}</span><p>${(l.cart||[]).map(i=>i.qty+' x '+i.name).join(', ')||'<small>Nothing in the cart</small>'}</p><a href="https://wa.me/${wph(l.phone)}?text=${encodeURIComponent('Hello '+l.name+', this is Prestigious Bakes. Would you like help finishing your order?')}" target="_blank">Message on WhatsApp</a></div>`).join('')||'<p>No sign-ups yet.</p>'}
 function notify(){$('#body').innerHTML=`<div class="card"><h2>Send a notification to customers</h2><small>Goes to everyone who turned notifications on.</small><label>Title</label><input id="nt" placeholder="New cakes are here"><label>Message</label><textarea id="nb" rows="3" placeholder="Come and see this week's new designs."></textarea><button class="b p" id="ns">Send now</button></div>`;
