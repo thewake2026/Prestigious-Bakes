@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Sitemap: https://prestigious-bakes.vercel.app/sitemap.xml
